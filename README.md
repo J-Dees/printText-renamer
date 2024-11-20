@@ -1,5 +1,7 @@
 # printText-renamer
 
-# A simple program to automate file renaming for ChemStation printText files
+A simple program to automate file renaming for ChemStation printText files.
 
-# directory: C:\Users\oilgas\Desktop\PDF
+Uses watchdog to handle and create sys alarms that monitor folder changes.
+
+target path: `C:\Users\oilgas\Desktop\PDF`
