@@ -1,14 +1,15 @@
 import os
 import time
 from watchdog.observers import Observer
-from watchdog.events import FiieSystemEventHandler
+from watchdog.events import FileSystemEventHandler
 from PyPDF2 import PdfReader
 
 pdf_folder = r'C:\Users\oilgas\Desktop\PDF'
 
 # given a line with the filename in it, parse out only the filename
+# the target PDF has a 4th line: 'Data File : {file_name}
 def parse_filename(line):
-  return 'PrintText' + line.split(':')[1]
+  return 'PrintText' + line.split(':')[1].strip()
 
 # extract file title from PDF using PyPDF2
 def extract_title(pdf_path):
@@ -17,12 +18,12 @@ def extract_title(pdf_path):
     if reader.pages:
       first_page = reader.pages[0]
       lines = first_page.extract_text().splitlines()
-      return parse_filename(lines[2].strip())
+      return parse_filename(lines[3].strip())
   except Exception as e:
     print(f"Error reading {pdf_path}: {e}")
   return None
     
-# process files as they are added to PDF folder (and the name of the file is 'printText')
+# process files as they are added to PDF folder only when the name of the PDF is 'printText'
 def process_pdf(file_path):
   if not file_path.endswith("PrintText.pdf"):
     return
@@ -32,6 +33,7 @@ def process_pdf(file_path):
     new_path = os.path.join(pdf_folder, f"{new_name}.pdf")
     if not os.path.exists(new_path):
       os.rename(file_path, new_path)
+      print(f"File succesfully renamed to {new_name}.")
     else:
       print(f"File with name {new_name} already exists.")
   else:
