@@ -8,7 +8,7 @@ pdf_folder = r'C:\Users\oilgas\Desktop\PDF'
 
 # given a line with the filename in it, parse out only the filename
 def parse_filename(line):
-  return 'printText' + line.split(':')[1]
+  return 'PrintText' + line.split(':')[1]
 
 # extract file title from PDF using PyPDF2
 def extract_title(pdf_path):
@@ -24,7 +24,7 @@ def extract_title(pdf_path):
     
 # process files as they are added to PDF folder (and the name of the file is 'printText')
 def process_pdf(file_path):
-  if not file_path.endswith("printText.pdf"):
+  if not file_path.endswith("PrintText.pdf"):
     return
 
   new_name = extract_title(file_path)
