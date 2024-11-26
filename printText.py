@@ -28,16 +28,23 @@ def process_pdf(file_path):
   if not file_path.endswith("PrintText.pdf"):
     return
 
-  new_name = extract_title(file_path)
-  if new_name:
-    new_path = os.path.join(pdf_folder, f"{new_name}.pdf")
-    if not os.path.exists(new_path):
-      os.rename(file_path, new_path)
-      print(f"File succesfully renamed to {new_name}.")
-    else:
-      print(f"File with name {new_name} already exists.")
-  else:
-    print(f"Could not extract name from {file_path}")
+  max_retries = 5
+  for attempt in range(max_retries):
+    try:
+      new_name = extract_title(file_path)
+      if new_name:
+        new_path = os.path.join(pdf_folder, f"{new_name}.pdf")
+        if not os.path.exists(new_path):
+          os.rename(file_path, new_path)
+          print(f"File successfully renamed to {new_name}.")
+        else:
+          print(f"File with name {new_name} already exists.")
+        break
+      else:
+        print(f"Could not extract name from {file_path}")
+    except Exception as e:
+      print(f"Attempt {attempt + 1} failed for {file_path}: {e}")
+      time.sleep(1)
 
 # create a watchdog class that handles new PDF files
 class PDFHandler(FileSystemEventHandler):
