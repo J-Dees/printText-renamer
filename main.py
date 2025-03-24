@@ -1,20 +1,17 @@
 import os
-
-instruments = {}
-paths = {}
+import time
 
 def load():
     '''Load file paths and instrument/software data. If none exists for either, the user will be prompted to create them.'''
-    global instruments
-    global paths
+    instruments = {}
     try:
         with open(os.path.join("instruments"), 'r') as f:
             lines = f.readlines()
             if lines == []:
                 raise FileNotFoundError
             for line in lines:
-                line.strip().split('=')
-                instruments[line[0]] = line[1]
+                line = line.strip().split('=')
+                instruments[line[0]] = {'type': line[1]}
     except FileNotFoundError:
         print("No instruments found. Please add instrument(s).")
         add_instrument()
@@ -28,8 +25,8 @@ def load():
             if lines == []:
                 raise FileNotFoundError
             for line in lines:
-                line.strip().split('=')
-                paths[line[0]] = line[1]
+                line = line.strip().split('=')
+                instruments[line[0]]['path'] = line[1]
     except FileNotFoundError:
         print("No file paths found. Please add path(s).")
         for instrument in instruments:
@@ -41,7 +38,7 @@ def load():
 
     # verify that each instrument has a path
     for instrument in instruments:
-        if instrument not in paths:
+        if 'path' not in instruments[instrument]:
             print("No file path found for " + instrument + ". Please add the file path.")
             add_path(instrument)
 
@@ -58,7 +55,17 @@ def add_instrument():
             f.write(instrument + "=" + instruments[instrument] + "\n")
     return
 
-def main():
+def add_path(instrument):
+    path = input("Enter the file path for " + instrument + ": ")
+    # verify that the path is valid
+    while not os.path.exists(path):
+        print("Invalid path. Please try again.")
+        path = input("Enter the file path for " + instrument + ": ")
+    with open(os.path.join("paths"), 'a') as f:
+        f.write(instrument + "=" + path + "\n")
+    return
+
+def main(instruments):
     title = "Auto File Renamer"
     print("=" * (32 + len(title)))
     print("\t\t" + title)
@@ -66,5 +73,11 @@ def main():
     print("\nChoose Instrument:")
 
 if __name__ == "__main__":
-    load()
-    main()
+    os.system('cls')
+    print("Loading...")
+    time.sleep(1)
+    instruments = load()
+    print('Instruments and file paths loaded.')
+    time.sleep(1)
+    os.system('cls')
+    main(instruments)
