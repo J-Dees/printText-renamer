@@ -41,6 +41,7 @@ def load():
         if 'path' not in instruments[instrument]:
             print("No file path found for " + instrument + ". Please add the file path.")
             add_path(instrument)
+    return instruments
 
 def add_instrument():
     instruments = {}
@@ -71,6 +72,10 @@ def main(instruments):
     print("\t\t" + title)
     print("=" * (32 + len(title)))
     print("\nChoose Instrument:")
+    for i, instrument in enumerate(instruments):
+        print(str(i + 1) + ". " + instrument)
+    print("\n" + "-" * (32 + len(title)) + "\nX. Exit")
+    print("Add. Add Instrument")
 
 if __name__ == "__main__":
     os.system('cls')
