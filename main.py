@@ -1,5 +1,6 @@
 import os
 import time
+import re
 
 class Instrument:
     def __init__(self, name, type, path):
@@ -30,63 +31,39 @@ def load():
             if inst_data == []:
                 raise FileNotFoundError
             for i in range(len(inst_data)):
-                inst_data[i] = inst_data[i].strip().split('=')
+                inst_data[i] = inst_data[i].strip()
+                inst_data[i] = re.split(':|,', inst_data[i])
+                inst_name = inst_data[i][0]
+                inst_type = inst_data[i][1]
+                inst_path = inst_data[i][2]
+                instruments.append(Instrument(inst_name, inst_type[inst_type.find('=') + 1:], inst_path[inst_path.find('=') + 1:]))
     except FileNotFoundError:
         print("No instruments found. Please add instrument(s).")
-        inst_data = add_instrument()
+        instruments += add_instrument()
     except:
         print("Error loading instruments. Please check instruments file.")
+        time.sleep(2)
+        print("Exiting...")
         exit()
-    try:
-        with open(os.path.join("paths"), 'r') as f:
-            path_data = f.readlines()
-            if path_data == []:
-                raise FileNotFoundError
-            for i in range(len(path_data)):
-                path_data[i] = path_data[i].strip().split('=')
-            for inst in inst_data:
-                if inst[0] == path[0]:
-                    inst.append(path[1])
-    except FileNotFoundError:
-        print("No file paths found. Please add path(s).")
-        for inst in inst_data:
-            path = add_path(inst[0])
-            inst.append(path)
-    except:
-        print("Error loading file paths. Please check file paths file.")
-        exit()
-    
-    instruments = [Instrument(inst[0], inst[1], inst[2]) for inst in inst_data]
 
-    # verify that each instrument has a path
-    for instrument in instruments:
-        if instrument.path == None:
-            print("No file path found for " + instrument.name + ". Please add the file path.")
-            instrument.path = add_path(instrument.name)
     return instruments
 
 def add_instrument():
     instruments = []
     cont = ''
     while cont.lower() != 'n':
-        instrument = input("Enter an instrument name to add: ")
-        type = input("Enter the software type for " + instrument + ": ")
-        instruments.append([instrument, type])
+        inst_name = input("Enter an instrument name to add: ")
+        inst_type = input("Enter the software type for " + inst_name + ": ")
+        inst_path = input("Enter the file path for " + inst_name + ": ")
+        while not os.path.exists(inst_path):
+            print("Invalid path. Please try again.")
+            inst_path = input("Enter the file path for " + inst_name + ": ")
+        instruments.append(Instrument(inst_name, inst_type, inst_path))
         cont = input("Add another instrument? (y/n): ")
     with open(os.path.join("instruments"), 'a') as f:
         for instrument in instruments:
-            f.write(instrument[0] + "=" + instrument[1] + "\n")
+            f.write(instrument.name + ":type=" + instrument.type + ",path=" + instrument.path + "\n")
     return instruments
-
-def add_path(instrument):
-    path = input("Enter the file path for " + instrument + ": ")
-    # verify that the path is valid
-    while not os.path.exists(path):
-        print("Invalid path. Please try again.")
-        path = input("Enter the file path for " + instrument + ": ")
-    with open(os.path.join("paths"), 'a') as f:
-        f.write(instrument + "=" + path + "\n")
-    return path
 
 def print_menu(instruments):
     title = "Auto File Renamer"
@@ -108,11 +85,7 @@ def main(instruments):
     while choice.lower() != 'x':
         if choice.lower() == 'add':
             os.system('cls')
-            new_instruments = add_instrument()
-            for inst in new_instruments:
-                path = add_path(inst[0])
-                inst.append(path)
-            instruments += [Instrument(inst[0], inst[1], inst[2]) for inst in new_instruments]
+            instruments += add_instrument()
             os.system('cls')
             print_menu(instruments)
             choice = input()
@@ -122,7 +95,7 @@ def main(instruments):
             if choice < 1 or choice > len(instruments):
                 raise ValueError
         except ValueError:
-            print("Invalid choice. Please enter to continue.")
+            print("Invalid choice. Press enter to continue.")
             input()
             os.system('cls')
             print_menu(instruments)
@@ -141,7 +114,7 @@ if __name__ == "__main__":
     print("Loading...")
     time.sleep(1)
     instruments = load()
-    print('Instruments and file paths loaded.')
+    print('Instruments successfully loaded.')
     time.sleep(1)
     os.system('cls')
     main(instruments)
