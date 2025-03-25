@@ -1,13 +1,20 @@
 import os
 import time
 import re
+from process import process_instrument
+from multiprocessing import Process
 
 class Instrument:
+
+    CHEMSTATION = 0
+    PEAKSIMPLE = 1
+
     def __init__(self, name, type, path):
         self.name = name
         self.type = type
         self.path = path
         self.running = 0
+        self.process = None
 
     def __str__(self):
         return self.name
@@ -53,7 +60,12 @@ def add_instrument():
     cont = ''
     while cont.lower() != 'n':
         inst_name = input("Enter an instrument name to add: ")
-        inst_type = input("Enter the software type for " + inst_name + ": ")
+        print("Enter the software type for " + inst_name + ".")
+        inst_type = input("0. ChemStation\n1. PeakSimple\n")
+        while inst_type not in ['0', '1']:
+            print("Invalid choice. Please try again.")
+            inst_type = input("0. ChemStation\n1. PeakSimple\n")
+        inst_type = int(inst_type)
         inst_path = input("Enter the file path for " + inst_name + ": ")
         while not os.path.exists(inst_path):
             print("Invalid path. Please try again.")
@@ -62,8 +74,21 @@ def add_instrument():
         cont = input("Add another instrument? (y/n): ")
     with open(os.path.join("instruments"), 'a') as f:
         for instrument in instruments:
-            f.write(instrument.name + ":type=" + instrument.type + ",path=" + instrument.path + "\n")
+            f.write(instrument.name + ":type=" + str(instrument.type) + ",path=" + instrument.path + "\n")
     return instruments
+
+def toggle_instrument(instrument):
+    if instrument.running:
+        if instrument.process.is_alive():
+            instrument.process.terminate()
+        instrument.running = 0
+        print("Stopping " + instrument.name + "...")
+    else:
+        p = Process(target=process_instrument, args=(instrument,))
+        p.start()
+        instrument.process = p
+        instrument.running = 1
+        print("Running " + instrument.name + " with process " + str(instrument.process.pid) + "...")
 
 def print_menu(instruments):
     title = "Auto File Renamer"
@@ -101,9 +126,8 @@ def main(instruments):
             print_menu(instruments)
             choice = input()
             continue
-        instrument = instruments[choice - 1]
-        instrument.running = 1
-        print("Running " + instrument.name + "...")
+        # create process for pdf renaming here
+        toggle_instrument(instruments[choice - 1])
         time.sleep(2)
         os.system('cls')
         print_menu(instruments)
