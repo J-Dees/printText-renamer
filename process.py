@@ -10,13 +10,17 @@ def log(string):
 
 # given a line with the filename in it, parse out only the filename
 # the target PDF has a 4th line: 'Data File : {file_name}
-def parse_filename(line, type: str):
+def parse_filename(line: str, type: str):
   if type == 'cs':
     return 'PrintText' + line.split(':')[1].strip()
   else:
     text = line.split(':')[1].strip()
     file_no = text.split('.')[0]
-    return ''.join([i for i in file_no if i.isdigit()])
+    has_us = file_no.find('_')
+    if has_us != -1:
+      return file_no.split('_')[1]
+    else:
+      return ''.join([i for i in file_no if i.isdigit()])
 
 # extract file title from PDF using PyPDF2
 def extract_title(pdf_path, type: str):
