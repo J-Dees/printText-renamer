@@ -2,3 +2,5 @@ PDF
 instruments
 paths
 __pycache__
+log.txt
+*.pdf
