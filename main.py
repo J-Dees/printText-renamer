@@ -5,13 +5,19 @@ from process import process_instrument
 from multiprocessing import Process
 
 class Instrument:
+    """
+    This class represents an instrument computer that will be monitored for new PDF files.
 
-    CHEMSTATION = 0
-    PEAKSIMPLE = 1
+    name (str): The name of the instrument.
+    itype (int): The type of software used by the instrument (0 for ChemStation, 1 for PeakSimple).
+    path (str): The file path to the instrument computer's PDF file.
+    running (int): A flag to indicate whether the instrument is currently running.
+    process (Process): The process that will monitor the instrument for new PDF files.
+    """
 
-    def __init__(self, name, type, path):
+    def __init__(self, name, itype, path):
         self.name = name
-        self.type = type
+        self.itype = itype
         self.path = path
         self.running = 0
         self.process = None
@@ -22,15 +28,34 @@ class Instrument:
     def __repr__(self):
         return self.name
     
-    def run(self):
-        self.running = 1
-        print("Running " + self.name + "...")
-
-    def stop(self):
-        self.running = 0
+    def toggle(self):
+        """
+        Toggle the instrument to start or stop running.
+        Starting the instrument will create a new process to monitor the instrument for new PDF files.
+        Stopping the instrument will terminate the process.
+        """
+        try:
+            if self.running:
+                if self.process.is_alive():
+                    self.process.terminate()
+                self.running = 0
+                print("Stopping " + self.name + "...")
+                log(self.name + " Stopped")
+            else:
+                p = Process(target=process_instrument, args=(self,))
+                p.start()
+                self.process = p
+                self.running = 1
+                print("Running " + self.name + " with process " + str(self.process.pid) + "...")
+                log(self.name + " Started: " + str(self.process.pid))
+        except Exception as e:
+            log("Error toggling instrument: " + str(e))
 
 def load():
-    '''Load file paths and instrument/software data. If none exists for either, the user will be prompted to create them.'''
+    """
+    Load instrument data from the instruments file into an array of Instrument objects. 
+    If the instruments file does not exist, the user will be prompted to create new instrument(s).
+    """
     instruments = []
     try:
         with open(os.path.join("instruments"), 'r') as f:
@@ -39,6 +64,7 @@ def load():
                 raise FileNotFoundError
             for i in range(len(inst_data)):
                 inst_data[i] = inst_data[i].strip()
+                # ex inst_data[i] = "name:type=0,path=C:\path\to\file", maxsplit used to prevent the path from being split
                 inst_data[i] = re.split(':|,', inst_data[i], maxsplit=2)
                 inst_name = inst_data[i][0]
                 inst_type = inst_data[i][1]
@@ -56,9 +82,12 @@ def load():
     return instruments
 
 def save_instruments(instruments):
+    """
+    Overwrite the instruments file with an updated list of instruments after a remove command.
+    """
     with open(os.path.join("instruments"), 'w') as f:
         for instrument in instruments:
-            f.write(instrument.name + ":type=" + str(instrument.type) + ",path=" + instrument.path + "\n")
+            f.write(instrument.name + ":type=" + str(instrument.itype) + ",path=" + instrument.path + "\n")
 
 def add_instrument():
     try:
@@ -80,31 +109,13 @@ def add_instrument():
             cont = input("Add another instrument? (y/n): ")
         with open(os.path.join("instruments"), 'a') as f:
             for instrument in instruments:
-                f.write(instrument.name + ":type=" + str(instrument.type) + ",path=" + instrument.path + "\n")
+                f.write(instrument.name + ":type=" + str(instrument.itype) + ",path=" + instrument.path + "\n")
         return instruments
     except Exception as e:
         print("Error adding instruments. Please try again.")
         log("Error adding instruments: " + str(e))
         time.sleep(2)
         return []
-
-def toggle_instrument(instrument):
-    try:
-        if instrument.running:
-            if instrument.process.is_alive():
-                instrument.process.terminate()
-            instrument.running = 0
-            print("Stopping " + instrument.name + "...")
-            log(instrument.name + " Stopped")
-        else:
-            p = Process(target=process_instrument, args=(instrument,))
-            p.start()
-            instrument.process = p
-            instrument.running = 1
-            print("Running " + instrument.name + " with process " + str(instrument.process.pid) + "...")
-            log(instrument.name + " Started: " + str(instrument.process.pid))
-    except Exception as e:
-        log("Error toggling instrument: " + str(e))
 
 def print_menu(instruments):
     title = "Auto File Renamer"
@@ -117,6 +128,7 @@ def print_menu(instruments):
         if instruments[i].running:
             print("(Running)")
         else:
+            # prints new line
             print()
     print("\n" + "-" * (32 + len(title)) + "\nX. Exit\nAdd. Add Instrument\nRm. Remove Instrument\n")
 
@@ -151,7 +163,8 @@ def main(instruments):
             choice = input()
             continue
         # create process for pdf renaming here
-        toggle_instrument(instruments[choice - 1])
+        instrument = instruments[choice - 1]
+        instrument.toggle()
         time.sleep(2)
         os.system('cls')
         print_menu(instruments)

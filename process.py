@@ -10,8 +10,8 @@ def log(string):
 
 # given a line with the filename in it, parse out only the filename
 # the target PDF has a 4th line: 'Data File : {file_name}
-def parse_filename(line: str, type: str):
-  if type == 'cs':
+def parse_filename(line: str, itype: str):
+  if itype == 'cs':
     return 'PrintText' + line.split(':')[1].strip()
   else:
     text = line.split(':')[1].strip()
@@ -23,7 +23,7 @@ def parse_filename(line: str, type: str):
       return ''.join([i for i in file_no if i.isdigit()])
 
 # extract file title from PDF using PyPDF2
-def extract_title(pdf_path, type: str):
+def extract_title(pdf_path, itype: str):
   try:
     reader = PdfReader(pdf_path)
     if reader.pages:
@@ -32,25 +32,25 @@ def extract_title(pdf_path, type: str):
       for line in lines:
         line = line.strip()
         if line.lower().startswith("data file"):
-          return parse_filename(line.strip(), type)
+          return parse_filename(line.strip(), itype)
       raise Exception("No 'Data File' line found")
   except Exception as e:
     log(f"Error reading {pdf_path}: {e}")
     return None
     
 # process files as they are added to PDF folder only when the name of the PDF is 'printText'
-def process_pdf(file_path: str, type: str):
-  if type == 'cs' and not file_path.endswith("PrintText.pdf"):
+def process_pdf(file_path: str, itype: str):
+  if itype == 'cs' and not file_path.endswith("PrintText.pdf"):
     log(f"\tskipping {file_path}")
     return
-  elif type == 'ps' and not file_path.endswith("PeakSimple.pdf"):
+  elif itype == 'ps' and not file_path.endswith("PeakSimple.pdf"):
     log(f"\tskipping {file_path}")
     return
   time.sleep(1)
   max_retries = 5
   for attempt in range(max_retries):
     try:
-      new_name = extract_title(file_path, type)
+      new_name = extract_title(file_path, itype)
       log("\tnew pdf name: " + new_name)
       if new_name:
         stop = file_path.rfind(os.sep)
@@ -86,7 +86,7 @@ class PS_PDFHandler(FileSystemEventHandler):
 def process_instrument(instrument):
   # add logging to monitor performance
   log("Processing " + instrument.name)
-  if instrument.type == 0:
+  if instrument.itype == 0:
     event_handler = CS_PDFHandler()
   else:
     event_handler = PS_PDFHandler()
