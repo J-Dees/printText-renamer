@@ -5,25 +5,37 @@ from watchdog.events import FileSystemEventHandler
 from PyPDF2 import PdfReader
 
 def log(string):
+    """
+    Performs logging to a log file.
+    """
     with open("log.txt", 'a') as f:
         f.write(string + "\n")
 
-# given a line with the filename in it, parse out only the filename
-# the target PDF has a 4th line: 'Data File : {file_name}
-def parse_filename(line: str, itype: str):
+def parse_filename(line: str, itype: str) -> str:
+  """
+  Parses out the name of the file from the 'Data File' line in the PDF.
+  Peaksimple files require further processing to extract the file number.
+  """
+  # ex CS line: 'Data File: P0QC2418.D' where 'P0QC2418.D' is the file name
+  # ex PS line: 'Data file: GCTCD182089.CHR ({path})' where '182089' is the file name
   if itype == 'cs':
     return 'PrintText' + line.split(':')[1].strip()
   else:
     text = line.split(':')[1].strip()
+    # usual format is either 'instrumentfileno.pdf' or 'instrument_fileno.pdf'
     file_no = text.split('.')[0]
+    # check for underscore and split if found
     has_us = file_no.find('_')
     if has_us != -1:
       return file_no.split('_')[1]
+    # else return all numbers in the file name
     else:
       return ''.join([i for i in file_no if i.isdigit()])
 
-# extract file title from PDF using PyPDF2
-def extract_title(pdf_path, itype: str):
+def extract_title(pdf_path: str, itype: str) -> str:
+  """
+  Extracts lines from the PDF file with PyPDF2 and searches for the 'Data File' line to extract the file name.
+  """
   try:
     reader = PdfReader(pdf_path)
     if reader.pages:
@@ -38,15 +50,21 @@ def extract_title(pdf_path, itype: str):
     log(f"Error reading {pdf_path}: {e}")
     return None
     
-# process files as they are added to PDF folder only when the name of the PDF is 'printText'
 def process_pdf(file_path: str, itype: str):
+  """
+  Conditionally processes PDF files as they are created in the specified instrument computer directory.
+  """
+  # if ChemStation file, skip if not a PrintText.pdf file
   if itype == 'cs' and not file_path.endswith("PrintText.pdf"):
     log(f"\tskipping {file_path}")
     return
+  # if PeakSimple file, skip if not a PeakSimple.pdf file
   elif itype == 'ps' and not file_path.endswith("PeakSimple.pdf"):
     log(f"\tskipping {file_path}")
     return
+  # sleep to allow PDF file to finish printing
   time.sleep(1)
+  # in case of failure, retry up to 5 times
   max_retries = 5
   for attempt in range(max_retries):
     try:
@@ -54,6 +72,7 @@ def process_pdf(file_path: str, itype: str):
       log("\tnew pdf name: " + new_name)
       if new_name:
         stop = file_path.rfind(os.sep)
+        # create new path for renaming with the new name
         new_path = os.path.join(file_path[:stop + 1], f"{new_name}.pdf")
         log("\tpath for new pdf: " + new_path)
         if not os.path.exists(new_path):
@@ -68,8 +87,11 @@ def process_pdf(file_path: str, itype: str):
       log(f"\tAttempt {attempt + 1} failed for {file_path}: {e}")
       time.sleep(1)
 
-# create a watchdog class that handles new PDF files
+
 class CS_PDFHandler(FileSystemEventHandler):
+  """
+  Handles the renaming of ChemStation PDF files.
+  """
   def on_created(self, event):
     if event.is_directory:
       return
@@ -77,6 +99,9 @@ class CS_PDFHandler(FileSystemEventHandler):
     process_pdf(event.src_path, 'cs')
   
 class PS_PDFHandler(FileSystemEventHandler):
+  """
+  Handles the renaming of PeakSimple PDF files.
+  """
   def on_created(self, event):
     if event.is_directory:
       return
@@ -84,6 +109,9 @@ class PS_PDFHandler(FileSystemEventHandler):
     process_pdf(event.src_path, 'ps')
 
 def process_instrument(instrument):
+  """
+  Creates a new observer for the given instrument to monitor for new PDF files.
+  """
   # add logging to monitor performance
   log("Processing " + instrument.name)
   if instrument.itype == 0:
