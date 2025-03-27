@@ -30,7 +30,7 @@ class Instrument:
     
     def toggle(self):
         """
-        Toggle the instrument to start or stop running.
+        Toggles the instrument to start or stop running.
         Starting the instrument will create a new process to monitor the instrument for new PDF files.
         Stopping the instrument will terminate the process.
         """
@@ -42,6 +42,7 @@ class Instrument:
                 print("Stopping " + self.name + "...")
                 log(self.name + " Stopped")
             else:
+                # generates a new process and stores it in the instrument object
                 p = Process(target=process_instrument, args=(self,))
                 p.start()
                 self.process = p
@@ -53,7 +54,7 @@ class Instrument:
 
 def load():
     """
-    Load instrument data from the instruments file into an array of Instrument objects. 
+    Loads instrument data from the instruments file into an array of Instrument objects. 
     If the instruments file does not exist, the user will be prompted to create new instrument(s).
     """
     instruments = []
@@ -73,8 +74,9 @@ def load():
     except FileNotFoundError:
         print("No instruments found. Please add instrument(s).")
         instruments += add_instrument()
-    except:
+    except Exception as e:
         print("Error loading instruments. Please check instruments file.")
+        log("Error loading instruments: " + str(e))
         time.sleep(2)
         print("Exiting...")
         exit()
@@ -83,13 +85,16 @@ def load():
 
 def save_instruments(instruments):
     """
-    Overwrite the instruments file with an updated list of instruments after a remove command.
+    Overwrites the instruments file with an updated list of instruments after a remove command.
     """
     with open(os.path.join("instruments"), 'w') as f:
         for instrument in instruments:
             f.write(instrument.name + ":type=" + str(instrument.itype) + ",path=" + instrument.path + "\n")
 
 def add_instrument():
+    """
+    Adds one or more instruments to the instruments file and returns a list of the new Instrument objects created.
+    """
     try:
         instruments = []
         cont = ''
@@ -100,8 +105,10 @@ def add_instrument():
             while inst_type not in ['0', '1']:
                 print("Invalid choice. Please try again.")
                 inst_type = input("0. ChemStation\n1. PeakSimple\n")
+            # take as a string to avoid value error from bad input then cast to int
             inst_type = int(inst_type)
             inst_path = input("Enter the file path for " + inst_name + ": ")
+            # validate that path exists before adding
             while not os.path.exists(inst_path):
                 print("Invalid path. Please try again.")
                 inst_path = input("Enter the file path for " + inst_name + ": ")
@@ -118,6 +125,9 @@ def add_instrument():
         return []
 
 def print_menu(instruments):
+    """
+    Prints the main menu with a list of instruments and their running status.
+    """
     title = "Auto File Renamer"
     print("=" * (32 + len(title)))
     print("\t\t" + title)
@@ -138,6 +148,7 @@ def main(instruments):
     while choice.lower() != 'x':
         if choice.lower() == 'add':
             os.system('cls')
+            # append new instrument(s)
             instruments += add_instrument()
             os.system('cls')
             print_menu(instruments)
@@ -145,6 +156,7 @@ def main(instruments):
             continue
         elif choice.lower() == 'rm':
             remove = input("Choose an instrument to remove: ")
+            # pop selection and then overwrite instruments file
             instruments.pop(int(remove) - 1)
             save_instruments(instruments)
             os.system('cls')
@@ -152,6 +164,7 @@ def main(instruments):
             choice = input()
             continue
         try:
+            # handle invalid inputs
             choice = int(choice)
             if choice < 1 or choice > len(instruments):
                 raise ValueError
@@ -162,19 +175,23 @@ def main(instruments):
             print_menu(instruments)
             choice = input()
             continue
-        # create process for pdf renaming here
         instrument = instruments[choice - 1]
+        # toggle selection on/off
         instrument.toggle()
         time.sleep(2)
         os.system('cls')
         print_menu(instruments)
         choice = input()
+    # upon exit, terminate all running instrument processes
     for instrument in instruments:
         if instrument.running:
             if instrument.process.is_alive():
                 instrument.process.terminate()
 
 def log(string):
+    """
+    Performs logging to a log file.
+    """
     with open("log.txt", 'a') as f:
         f.write(string + "\n")
 
