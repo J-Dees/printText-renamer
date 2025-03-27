@@ -30,7 +30,8 @@ def extract_title(pdf_path, type: str):
       first_page = reader.pages[0]
       lines = first_page.extract_text().splitlines()
       for line in lines:
-        if line.startswith("Data File"):
+        line = line.strip()
+        if line.lower().startswith("data file"):
           return parse_filename(line.strip(), type)
       raise Exception("No 'Data File' line found")
   except Exception as e:
@@ -45,7 +46,7 @@ def process_pdf(file_path: str, type: str):
   elif type == 'ps' and not file_path.endswith("PeakSimple.pdf"):
     log(f"\tskipping {file_path}")
     return
-
+  time.sleep(1)
   max_retries = 5
   for attempt in range(max_retries):
     try:
@@ -64,7 +65,7 @@ def process_pdf(file_path: str, type: str):
       else:
         log(f"\tcould not extract name from {file_path}")
     except Exception as e:
-      log(f"Attempt {attempt + 1} failed for {file_path}: {e}")
+      log(f"\tAttempt {attempt + 1} failed for {file_path}: {e}")
       time.sleep(1)
 
 # create a watchdog class that handles new PDF files
@@ -85,7 +86,7 @@ class PS_PDFHandler(FileSystemEventHandler):
 def process_instrument(instrument):
   # add logging to monitor performance
   log("Processing " + instrument.name)
-  if instrument.type == instrument.CHEMSTATION:
+  if instrument.type == 0:
     event_handler = CS_PDFHandler()
   else:
     event_handler = PS_PDFHandler()

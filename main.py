@@ -39,11 +39,11 @@ def load():
                 raise FileNotFoundError
             for i in range(len(inst_data)):
                 inst_data[i] = inst_data[i].strip()
-                inst_data[i] = re.split(':|,', inst_data[i], 2)
+                inst_data[i] = re.split(':|,', inst_data[i], maxsplit=2)
                 inst_name = inst_data[i][0]
                 inst_type = inst_data[i][1]
                 inst_path = inst_data[i][2]
-                instruments.append(Instrument(inst_name, inst_type[inst_type.find('=') + 1:], inst_path[inst_path.find('=') + 1:]))
+                instruments.append(Instrument(inst_name, int(inst_type[inst_type.find('=') + 1:]), inst_path[inst_path.find('=') + 1:]))
     except FileNotFoundError:
         print("No instruments found. Please add instrument(s).")
         instruments += add_instrument()
@@ -54,6 +54,11 @@ def load():
         exit()
 
     return instruments
+
+def save_instruments(instruments):
+    with open(os.path.join("instruments"), 'w') as f:
+        for instrument in instruments:
+            f.write(instrument.name + ":type=" + str(instrument.type) + ",path=" + instrument.path + "\n")
 
 def add_instrument():
     try:
@@ -113,7 +118,7 @@ def print_menu(instruments):
             print("(Running)")
         else:
             print()
-    print("\n" + "-" * (32 + len(title)) + "\nX. Exit\nAdd. Add Instrument\n")
+    print("\n" + "-" * (32 + len(title)) + "\nX. Exit\nAdd. Add Instrument\nRm. Remove Instrument\n")
 
 def main(instruments):
     print_menu(instruments)
@@ -122,6 +127,14 @@ def main(instruments):
         if choice.lower() == 'add':
             os.system('cls')
             instruments += add_instrument()
+            os.system('cls')
+            print_menu(instruments)
+            choice = input()
+            continue
+        elif choice.lower() == 'rm':
+            remove = input("Choose an instrument to remove: ")
+            instruments.pop(int(remove) - 1)
+            save_instruments(instruments)
             os.system('cls')
             print_menu(instruments)
             choice = input()
