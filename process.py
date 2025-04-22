@@ -108,18 +108,18 @@ class PS_PDFHandler(FileSystemEventHandler):
     log("\tprocessing: " + event.src_path)
     process_pdf(event.src_path, 'ps')
 
-def process_instrument(instrument):
+def process_instrument(name, itype, path):
   """
   Creates a new observer for the given instrument to monitor for new PDF files.
   """
   # add logging to monitor performance
-  log("Processing " + instrument.name)
-  if instrument.itype == 0:
+  log("Processing " + name)
+  if itype == 0:
     event_handler = CS_PDFHandler()
   else:
     event_handler = PS_PDFHandler()
   observer = Observer()
-  observer.schedule(event_handler, instrument.path, recursive=False)
+  observer.schedule(event_handler, path, recursive=False)
   observer.start()
 
   # automatically run until process is terminated

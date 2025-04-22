@@ -43,7 +43,7 @@ class Instrument:
                 log(self.name + " Stopped")
             else:
                 # generates a new process and stores it in the instrument object
-                p = Process(target=process_instrument, args=(self,))
+                p = Process(target=process_instrument, args=(self.name, self.itype, self.path))
                 p.start()
                 self.process = p
                 self.running = 1
@@ -157,7 +157,18 @@ def main(instruments):
         elif choice.lower() == 'rm':
             remove = input("Choose an instrument to remove: ")
             # pop selection and then overwrite instruments file
-            instruments.pop(int(remove) - 1)
+            try:
+                remove = int(remove)
+                if remove < 1 or remove > len(instruments):
+                    raise ValueError
+            except ValueError:
+                print("Invalid choice. Press enter to continue.")
+                input()
+                os.system('cls')
+                print_menu(instruments)
+                choice = input()
+                continue
+            instruments.pop(remove - 1)
             save_instruments(instruments)
             os.system('cls')
             print_menu(instruments)
